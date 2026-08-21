@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 import auth
+from ui.style import Colors, apply_card_shadow, icon
 
 
 class UsersScreen(QWidget):
@@ -33,10 +34,16 @@ class UsersScreen(QWidget):
 
     def _build_ui(self):
         root = QHBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(20)
 
         form_box = QGroupBox("زیادکردنی بەکارهێنەری نوێ")
+        apply_card_shadow(form_box)
         form_layout = QVBoxLayout(form_box)
+        form_layout.setSpacing(14)
         fields = QFormLayout()
+        fields.setSpacing(12)
+        fields.setVerticalSpacing(12)
 
         self.username_input = QLineEdit()
         fields.addRow("ناوی بەکارهێنەر:", self.username_input)
@@ -56,17 +63,22 @@ class UsersScreen(QWidget):
         self.error_label.setWordWrap(True)
         form_layout.addWidget(self.error_label)
 
-        self.add_btn = QPushButton("زیادکردن")
+        self.add_btn = QPushButton(" زیادکردن")
+        self.add_btn.setIcon(icon("fa5s.user-plus", "white"))
         self.add_btn.clicked.connect(self.on_add_clicked)
         form_layout.addWidget(self.add_btn)
 
-        form_layout.addSpacing(20)
-        form_layout.addWidget(QLabel("گۆڕینی وشەی نهێنی (بۆ بەکارهێنەری دیاریکراو):"))
+        form_layout.addSpacing(24)
+        section_label = QLabel("گۆڕینی وشەی نهێنی (بۆ بەکارهێنەری دیاریکراو)")
+        section_label.setProperty("role", "section")
+        form_layout.addWidget(section_label)
         self.new_password_input = QLineEdit()
         self.new_password_input.setEchoMode(QLineEdit.Password)
         self.new_password_input.setPlaceholderText("وشەی نهێنی نوێ")
         form_layout.addWidget(self.new_password_input)
-        self.change_password_btn = QPushButton("گۆڕینی وشەی نهێنی")
+        self.change_password_btn = QPushButton(" گۆڕینی وشەی نهێنی")
+        self.change_password_btn.setIcon(icon("fa5s.key", Colors.TEXT_SECONDARY))
+        self.change_password_btn.setProperty("secondary", True)
         self.change_password_btn.clicked.connect(self.on_change_password_clicked)
         form_layout.addWidget(self.change_password_btn)
 
@@ -74,12 +86,17 @@ class UsersScreen(QWidget):
         root.addWidget(form_box, 2)
 
         table_box = QGroupBox("بەکارهێنەرەکان")
+        apply_card_shadow(table_box)
         table_layout = QVBoxLayout(table_box)
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["ناو", "ڕۆڵ", "بژاردەکان"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setAlternatingRowColors(True)
+        self.table.setMouseTracking(True)
+        self.table.verticalHeader().setDefaultSectionSize(40)
+        self.table.verticalHeader().setVisible(False)
         self.table.itemSelectionChanged.connect(self.on_selection_changed)
         table_layout.addWidget(self.table)
         root.addWidget(table_box, 3)
@@ -153,7 +170,8 @@ class UsersScreen(QWidget):
             self.table.setItem(row, 0, name_item)
             self.table.setItem(row, 1, QTableWidgetItem(u["role"]))
 
-            remove_btn = QPushButton("سڕینەوە")
+            remove_btn = QPushButton(" سڕینەوە")
+            remove_btn.setIcon(icon("fa5s.trash-alt", "white"))
             remove_btn.setProperty("danger", True)
             remove_btn.clicked.connect(lambda _, uid=u["id"]: self.on_remove_clicked(uid))
             self.table.setCellWidget(row, 2, remove_btn)

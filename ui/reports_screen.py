@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, QSize
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
-    QGridLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 import models
+from ui.style import Colors, apply_card_shadow, icon
 
 PERIOD_DAILY = "ڕۆژانە"
 PERIOD_WEEKLY = "هەفتانە"
@@ -35,8 +36,12 @@ class ReportsScreen(QWidget):
 
     def _build_ui(self):
         root = QVBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(20)
 
-        filter_row = QHBoxLayout()
+        filter_card = QGroupBox()
+        apply_card_shadow(filter_card)
+        filter_row = QHBoxLayout(filter_card)
         filter_row.addWidget(QLabel("ماوە:"))
         self.period_combo = QComboBox()
         self.period_combo.addItems([PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY])
@@ -55,42 +60,64 @@ class ReportsScreen(QWidget):
         self.end_date.setDate(QDate.currentDate())
         filter_row.addWidget(self.end_date)
 
-        self.refresh_btn = QPushButton("نوێکردنەوە")
+        self.refresh_btn = QPushButton(" نوێکردنەوە")
+        self.refresh_btn.setIcon(icon("fa5s.sync-alt", "white"))
         self.refresh_btn.clicked.connect(self.refresh)
         filter_row.addWidget(self.refresh_btn)
         filter_row.addStretch()
 
-        root.addLayout(filter_row)
+        root.addWidget(filter_card)
 
-        stats_box = QGroupBox("پوختەی فرۆشتن")
-        stats_grid = QGridLayout(stats_box)
+        stats_row = QHBoxLayout()
+        stats_row.setSpacing(16)
         self.receipt_count_label = QLabel("0")
         self.qty_label = QLabel("0")
         self.revenue_label = QLabel("0 د.ع")
         self.profit_label = QLabel("0 د.ع")
-        for lbl in (self.receipt_count_label, self.qty_label, self.revenue_label, self.profit_label):
-            lbl.setProperty("role", "total")
 
-        stats_grid.addWidget(QLabel("ژمارەی پسوڵەکان:"), 0, 0)
-        stats_grid.addWidget(self.receipt_count_label, 0, 1)
-        stats_grid.addWidget(QLabel("کۆی دانە فرۆشراو:"), 0, 2)
-        stats_grid.addWidget(self.qty_label, 0, 3)
-        stats_grid.addWidget(QLabel("کۆی داهات:"), 1, 0)
-        stats_grid.addWidget(self.revenue_label, 1, 1)
-        stats_grid.addWidget(QLabel("کۆی قازانج:"), 1, 2)
-        stats_grid.addWidget(self.profit_label, 1, 3)
-        root.addWidget(stats_box)
+        stats_row.addWidget(self._stat_tile("fa5s.receipt", "ژمارەی پسوڵەکان", self.receipt_count_label, Colors.SECONDARY))
+        stats_row.addWidget(self._stat_tile("fa5s.box", "کۆی دانە فرۆشراو", self.qty_label, Colors.SECONDARY))
+        stats_row.addWidget(self._stat_tile("fa5s.coins", "کۆی داهات", self.revenue_label, Colors.PRIMARY))
+        stats_row.addWidget(self._stat_tile("fa5s.chart-line", "کۆی قازانج", self.profit_label, Colors.PRIMARY))
+        root.addLayout(stats_row)
 
         top_box = QGroupBox("باشترین 5 بەرهەمی فرۆشراو")
+        apply_card_shadow(top_box)
         top_layout = QVBoxLayout(top_box)
         self.top_table = QTableWidget(0, 2)
         self.top_table.setHorizontalHeaderLabels(["بەرهەم", "دانەی فرۆشراو"])
         self.top_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.top_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.top_table.setAlternatingRowColors(True)
+        self.top_table.setMouseTracking(True)
+        self.top_table.verticalHeader().setDefaultSectionSize(36)
+        self.top_table.verticalHeader().setVisible(False)
         top_layout.addWidget(self.top_table)
         root.addWidget(top_box)
 
         self.on_period_changed(self.period_combo.currentText())
+
+    @staticmethod
+    def _stat_tile(icon_name: str, caption: str, value_label: QLabel, accent: str) -> QFrame:
+        tile = QFrame()
+        tile.setObjectName("card")
+        apply_card_shadow(tile)
+        layout = QVBoxLayout(tile)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(6)
+
+        icon_label = QLabel()
+        icon_label.setPixmap(icon(icon_name, accent).pixmap(QSize(22, 22)))
+        layout.addWidget(icon_label)
+
+        value_label.setProperty("role", "total")
+        layout.addWidget(value_label)
+
+        caption_label = QLabel(caption)
+        caption_label.setProperty("role", "caption")
+        layout.addWidget(caption_label)
+
+        return tile
 
     def on_period_changed(self, period: str):
         today = QDate.currentDate()

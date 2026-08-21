@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 import auth
 import models
+from ui.style import Colors, apply_card_shadow, icon
 
 MAX_PRICE = 999_999_999
 MAX_QTY = 1_000_000
@@ -43,27 +44,37 @@ class ProductEntryScreen(QWidget):
     # ------------------------------------------------------------------ UI
     def _build_ui(self):
         root = QHBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(20)
 
         # ---- Left: form ----
         form_box = QGroupBox("زیادکردنی بەرهەم / پڕکردنەوەی کۆگا")
+        apply_card_shadow(form_box)
         form_layout = QVBoxLayout(form_box)
+        form_layout.setSpacing(16)
 
         barcode_row = QHBoxLayout()
         self.barcode_input = QLineEdit()
+        self.barcode_input.setObjectName("barcodeInput")
         self.barcode_input.setPlaceholderText("بارکۆد سکان بکە یان بنووسە و Enter دابگرە")
         self.barcode_input.returnPressed.connect(self.on_barcode_entered)
         barcode_row.addWidget(QLabel("بارکۆد:"))
         barcode_row.addWidget(self.barcode_input)
         self.gen_barcode_btn = QPushButton("دروستکردنی بارکۆدی ناوخۆیی")
+        self.gen_barcode_btn.setIcon(icon("fa5s.barcode", Colors.TEXT_SECONDARY))
+        self.gen_barcode_btn.setProperty("secondary", True)
         self.gen_barcode_btn.clicked.connect(self.generate_barcode)
         barcode_row.addWidget(self.gen_barcode_btn)
         form_layout.addLayout(barcode_row)
 
         self.mode_label = QLabel("")
         self.mode_label.setProperty("role", "warning")
+        self.mode_label.setWordWrap(True)
         form_layout.addWidget(self.mode_label)
 
         fields = QFormLayout()
+        fields.setSpacing(12)
+        fields.setVerticalSpacing(12)
         self.name_input = QLineEdit()
         fields.addRow("ناوی بەرهەم:", self.name_input)
 
@@ -116,6 +127,7 @@ class ProductEntryScreen(QWidget):
 
         btn_row = QHBoxLayout()
         self.save_btn = QPushButton("پاشەکەوتکردن")
+        self.save_btn.setIcon(icon("fa5s.check", "white"))
         self.save_btn.clicked.connect(self.on_save_clicked)
         self.clear_btn = QPushButton("سڕینەوەی خانەکان")
         self.clear_btn.setProperty("secondary", True)
@@ -129,7 +141,9 @@ class ProductEntryScreen(QWidget):
 
         # ---- Right: product table ----
         table_box = QGroupBox("لیستی بەرهەمەکان")
+        apply_card_shadow(table_box)
         table_layout = QVBoxLayout(table_box)
+        table_layout.setSpacing(12)
 
         self.low_stock_label = QLabel("")
         self.low_stock_label.setProperty("role", "warning")
@@ -143,6 +157,10 @@ class ProductEntryScreen(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setAlternatingRowColors(True)
+        self.table.setMouseTracking(True)
+        self.table.verticalHeader().setDefaultSectionSize(38)
+        self.table.verticalHeader().setVisible(False)
         table_layout.addWidget(self.table)
 
         root.addWidget(table_box, 3)

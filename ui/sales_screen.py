@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
 
 import auth
 import models
+from ui.style import Colors, apply_card_shadow, icon
 
 
 class SalesScreen(QWidget):
@@ -39,20 +41,26 @@ class SalesScreen(QWidget):
     # ------------------------------------------------------------------ UI
     def _build_ui(self):
         root = QHBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(20)
 
         left_box = QGroupBox("کڕین / گەڕان بۆ بەرهەم")
+        apply_card_shadow(left_box)
         left = QVBoxLayout(left_box)
+        left.setSpacing(12)
 
+        left.addWidget(QLabel("بارکۆد:"))
         self.barcode_input = QLineEdit()
+        self.barcode_input.setObjectName("barcodeInput")
         self.barcode_input.setPlaceholderText("بارکۆد سکان بکە و Enter دابگرە")
         self.barcode_input.returnPressed.connect(self.on_barcode_scanned)
-        left.addWidget(QLabel("بارکۆد:"))
         left.addWidget(self.barcode_input)
 
+        left.addSpacing(12)
+        left.addWidget(QLabel("گەڕان بە ناو:"))
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("گەڕان بە ناوی بەرهەم...")
         self.search_input.textChanged.connect(self.on_search_changed)
-        left.addWidget(QLabel("گەڕان بە ناو:"))
         left.addWidget(self.search_input)
 
         self.search_results = QListWidget()
@@ -63,14 +71,27 @@ class SalesScreen(QWidget):
         root.addWidget(left_box)
 
         right_box = QGroupBox("لیستی کڕین")
+        apply_card_shadow(right_box)
         right = QVBoxLayout(right_box)
+        right.setSpacing(16)
 
         self.cart_table = QTableWidget(0, 5)
         self.cart_table.setHorizontalHeaderLabels(
             ["بەرهەم", "نرخ", "دانە", "کۆی گشتی", ""]
         )
-        self.cart_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        cart_header = self.cart_table.horizontalHeader()
+        cart_header.setSectionResizeMode(0, QHeaderView.Stretch)
+        cart_header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        cart_header.setSectionResizeMode(2, QHeaderView.Fixed)
+        cart_header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        cart_header.setSectionResizeMode(4, QHeaderView.Fixed)
+        self.cart_table.setColumnWidth(2, 110)
+        self.cart_table.setColumnWidth(4, 48)
         self.cart_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.cart_table.setAlternatingRowColors(True)
+        self.cart_table.setMouseTracking(True)
+        self.cart_table.verticalHeader().setDefaultSectionSize(44)
+        self.cart_table.verticalHeader().setVisible(False)
         right.addWidget(self.cart_table)
 
         bottom_row = QHBoxLayout()
@@ -79,19 +100,24 @@ class SalesScreen(QWidget):
         discount_box.addWidget(QLabel("داشکاندن (د.ع):"))
         self.discount_input = QSpinBox()
         self.discount_input.setRange(0, 999_999_999)
+        self.discount_input.setMinimumHeight(36)
         self.discount_input.valueChanged.connect(self.update_totals)
         discount_box.addWidget(self.discount_input)
         bottom_row.addLayout(discount_box)
 
         bottom_row.addStretch()
 
-        totals_box = QVBoxLayout()
+        total_card = QFrame()
+        total_card.setObjectName("totalCard")
+        totals_box = QVBoxLayout(total_card)
+        totals_box.setContentsMargins(20, 10, 20, 10)
         self.subtotal_label = QLabel("کۆی گشتی: 0 د.ع")
+        self.subtotal_label.setProperty("role", "caption")
         self.total_label = QLabel("پارەی کۆتایی: 0 د.ع")
-        self.total_label.setProperty("role", "total")
+        self.total_label.setProperty("role", "grandtotal")
         totals_box.addWidget(self.subtotal_label)
         totals_box.addWidget(self.total_label)
-        bottom_row.addLayout(totals_box)
+        bottom_row.addWidget(total_card)
 
         right.addLayout(bottom_row)
 
@@ -100,13 +126,17 @@ class SalesScreen(QWidget):
         right.addWidget(self.error_label)
 
         action_row = QHBoxLayout()
-        self.complete_btn = QPushButton("تەواوکردنی فرۆشتن")
+        self.complete_btn = QPushButton(" تەواوکردنی فرۆشتن")
+        self.complete_btn.setIcon(icon("fa5s.check-circle", "white"))
+        self.complete_btn.setIconSize(QSize(18, 18))
+        self.complete_btn.setMinimumHeight(44)
         self.complete_btn.clicked.connect(self.on_complete_clicked)
         self.clear_btn = QPushButton("پاککردنەوە")
         self.clear_btn.setProperty("secondary", True)
+        self.clear_btn.setMinimumHeight(44)
         self.clear_btn.clicked.connect(self.clear_cart)
-        action_row.addWidget(self.complete_btn)
-        action_row.addWidget(self.clear_btn)
+        action_row.addWidget(self.complete_btn, 2)
+        action_row.addWidget(self.clear_btn, 1)
         right.addLayout(action_row)
 
         root.addWidget(right_box)
@@ -177,14 +207,19 @@ class SalesScreen(QWidget):
 
             qty_widget = QWidget()
             qty_layout = QHBoxLayout(qty_widget)
-            qty_layout.setContentsMargins(0, 0, 0, 0)
-            minus_btn = QPushButton("-")
-            minus_btn.setFixedWidth(28)
+            qty_layout.setContentsMargins(4, 4, 4, 4)
+            qty_layout.setSpacing(6)
+            minus_btn = QPushButton()
+            minus_btn.setIcon(icon("fa5s.minus", Colors.TEXT_SECONDARY))
+            minus_btn.setFixedSize(28, 28)
+            minus_btn.setProperty("secondary", True)
             minus_btn.clicked.connect(lambda _, i=row: self.change_quantity(i, -1))
             qty_label = QLabel(str(line["quantity"]))
             qty_label.setAlignment(Qt.AlignCenter)
-            plus_btn = QPushButton("+")
-            plus_btn.setFixedWidth(28)
+            qty_label.setMinimumWidth(24)
+            plus_btn = QPushButton()
+            plus_btn.setIcon(icon("fa5s.plus", "white"))
+            plus_btn.setFixedSize(28, 28)
             plus_btn.clicked.connect(lambda _, i=row: self.change_quantity(i, 1))
             qty_layout.addWidget(minus_btn)
             qty_layout.addWidget(qty_label)
@@ -194,7 +229,9 @@ class SalesScreen(QWidget):
             line_total = line["unit_price"] * line["quantity"]
             self.cart_table.setItem(row, 3, QTableWidgetItem(f"{line_total:,} د.ع"))
 
-            del_btn = QPushButton("سڕینەوە")
+            del_btn = QPushButton()
+            del_btn.setIcon(icon("fa5s.trash-alt", "white"))
+            del_btn.setFixedSize(32, 28)
             del_btn.setProperty("danger", True)
             del_btn.clicked.connect(lambda _, i=row: self.remove_line(i))
             self.cart_table.setCellWidget(row, 4, del_btn)

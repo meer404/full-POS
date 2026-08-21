@@ -94,6 +94,15 @@ def run():
         assert models.get_total_stock(conn, milk_id) == 25  # 50 - 25 sold
         print("OK: post-sale stock correct (50 - 25 = 25 remaining)")
 
+        # sales.created_at defaults to UTC (SQLite CURRENT_TIMESTAMP) but ReportsScreen
+        # filters by local date (QDate::currentDate()); pin it to local "now" so this test
+        # isn't flaky within a few hours of local midnight (test-only adjustment).
+        conn.execute(
+            "UPDATE sales SET created_at = datetime('now', 'localtime') WHERE id = ?",
+            (receipt["sale_id"],),
+        )
+        conn.commit()
+
         # ---------- 3. Reports: today's numbers reflect the sale ----------
         reports = ReportsScreen(conn)
         assert reports.receipt_count_label.text() == "1"

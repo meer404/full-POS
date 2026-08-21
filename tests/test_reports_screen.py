@@ -27,12 +27,18 @@ def run():
 
         pid = models.create_product(conn, "Milk", "1111111111111", "Dairy", 1000, min_stock=5)
         models.add_stock_batch(conn, pid, purchase_price=700, quantity=100, expiry_date=None)
-        models.complete_sale(
+        sale_id = models.complete_sale(
             conn,
             cart_items=[{"product_id": pid, "quantity": 10, "unit_price": 1000}],
             discount=0,
             cashier_id=admin_id,
         )
+        # sales.created_at defaults to UTC (SQLite CURRENT_TIMESTAMP) but the screen filters
+        # by local date (QDate::currentDate()); pin it to local "now" so this test isn't
+        # flaky within a few hours of local midnight. This is a test-only adjustment — see
+        # the UTC/local mismatch noted for models.py/database.py separately.
+        conn.execute("UPDATE sales SET created_at = datetime('now', 'localtime') WHERE id = ?", (sale_id,))
+        conn.commit()
 
         screen = ReportsScreen(conn)
 

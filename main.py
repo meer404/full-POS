@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
 
 import auth
 import backup
 import database
-from ui.style import apply_app_style
+from ui.style import Colors, apply_app_style, icon
 from ui.login_screen import LoginScreen
 from ui.product_entry import ProductEntryScreen
 from ui.sales_screen import SalesScreen
@@ -29,17 +29,20 @@ class MainWindow(QMainWindow):
         self.setLayoutDirection(Qt.RightToLeft)
 
         tabs = QTabWidget()
+        tabs.setIconSize(QSize(18, 18))
         self.setCentralWidget(tabs)
 
+        tab_icon_color = Colors.TEXT_SECONDARY
+
         # Every role can sell and enter/restock products.
-        tabs.addTab(SalesScreen(conn, user), "فرۆشتن")
-        tabs.addTab(ProductEntryScreen(conn, user), "زیادکردنی بەرهەم")
+        tabs.addTab(SalesScreen(conn, user), icon("fa5s.shopping-cart", tab_icon_color), "فرۆشتن")
+        tabs.addTab(ProductEntryScreen(conn, user), icon("fa5s.box", tab_icon_color), "زیادکردنی بەرهەم")
 
         # Admin-only tabs.
         if user.is_admin:
-            tabs.addTab(ReportsScreen(conn), "ڕاپۆرت")
-            tabs.addTab(ExpiryScreen(conn), "بەسەرچوونی بەرهەم")
-            tabs.addTab(UsersScreen(conn, user), "بەڕێوەبردنی بەکارهێنەران")
+            tabs.addTab(ReportsScreen(conn), icon("fa5s.chart-bar", tab_icon_color), "ڕاپۆرت")
+            tabs.addTab(ExpiryScreen(conn), icon("fa5s.exclamation-triangle", tab_icon_color), "بەسەرچوونی بەرهەم")
+            tabs.addTab(UsersScreen(conn, user), icon("fa5s.users", tab_icon_color), "بەڕێوەبردنی بەکارهێنەران")
 
     def closeEvent(self, event):
         try:

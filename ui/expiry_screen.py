@@ -18,9 +18,11 @@ from PySide6.QtWidgets import (
 )
 
 import models
+from ui.style import Colors, apply_card_shadow, icon
 
 WARNING_DAYS = 7
-WARNING_COLOR = "#fff3cd"  # yellow/orange highlight
+WARNING_COLOR = Colors.WARNING_BG
+DANGER_COLOR = Colors.DANGER_BG
 
 
 class ExpiryScreen(QWidget):
@@ -32,8 +34,11 @@ class ExpiryScreen(QWidget):
 
     def _build_ui(self):
         root = QVBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(20)
 
         expired_box = QGroupBox("بەرهەمە بەسەرچووەکان")
+        apply_card_shadow(expired_box)
         expired_layout = QVBoxLayout(expired_box)
         self.expired_table = QTableWidget(0, 6)
         self.expired_table.setHorizontalHeaderLabels(
@@ -41,15 +46,22 @@ class ExpiryScreen(QWidget):
         )
         self.expired_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.expired_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.expired_table.setMouseTracking(True)
+        self.expired_table.verticalHeader().setDefaultSectionSize(42)
+        self.expired_table.verticalHeader().setVisible(False)
         expired_layout.addWidget(self.expired_table)
         root.addWidget(expired_box)
 
         warning_box = QGroupBox(f"ئاگاداری: نزیکن لە بەسەرچوون (کەمتر یان یەکسان بە {WARNING_DAYS} ڕۆژ)")
+        apply_card_shadow(warning_box)
         warning_layout = QVBoxLayout(warning_box)
         self.warning_table = QTableWidget(0, 3)
         self.warning_table.setHorizontalHeaderLabels(["بەرهەم", "بڕ", "بەرواری بەسەرچوون"])
         self.warning_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.warning_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.warning_table.setMouseTracking(True)
+        self.warning_table.verticalHeader().setDefaultSectionSize(38)
+        self.warning_table.verticalHeader().setVisible(False)
         warning_layout.addWidget(self.warning_table)
         root.addWidget(warning_box)
 
@@ -78,20 +90,30 @@ class ExpiryScreen(QWidget):
         expired = models.list_expired_batches(self.conn, today)
         self.expired_table.setRowCount(len(expired))
         for row, b in enumerate(expired):
-            self.expired_table.setItem(row, 0, QTableWidgetItem(b["product_name"]))
-            self.expired_table.setItem(row, 1, QTableWidgetItem(f"{b['quantity']} {b['unit']}"))
-            self.expired_table.setItem(row, 2, QTableWidgetItem(b["expiry_date"]))
+            name_item = QTableWidgetItem(b["product_name"])
+            qty_item = QTableWidgetItem(f"{b['quantity']} {b['unit']}")
+            date_item = QTableWidgetItem(b["expiry_date"])
             loss_value = b["purchase_price"] * b["quantity"]
-            self.expired_table.setItem(row, 3, QTableWidgetItem(f"{b['purchase_price']:,} د.ع"))
-            self.expired_table.setItem(row, 4, QTableWidgetItem(f"{loss_value:,} د.ع"))
+            price_item = QTableWidgetItem(f"{b['purchase_price']:,} د.ع")
+            loss_item = QTableWidgetItem(f"{loss_value:,} د.ع")
+            for item in (name_item, qty_item, date_item, price_item, loss_item):
+                item.setBackground(QColor(DANGER_COLOR))
+            self.expired_table.setItem(row, 0, name_item)
+            self.expired_table.setItem(row, 1, qty_item)
+            self.expired_table.setItem(row, 2, date_item)
+            self.expired_table.setItem(row, 3, price_item)
+            self.expired_table.setItem(row, 4, loss_item)
 
             actions = QWidget()
             actions_layout = QHBoxLayout(actions)
-            actions_layout.setContentsMargins(0, 0, 0, 0)
-            loss_btn = QPushButton("وەک زیان تۆماربکە")
+            actions_layout.setContentsMargins(4, 2, 4, 2)
+            actions_layout.setSpacing(6)
+            loss_btn = QPushButton(" زیان")
+            loss_btn.setIcon(icon("fa5s.trash-alt", "white"))
             loss_btn.setProperty("danger", True)
             loss_btn.clicked.connect(lambda _, bid=b["id"]: self.on_mark_as_loss_clicked(bid))
-            return_btn = QPushButton("گەڕانەوە بۆ دابینکەر")
+            return_btn = QPushButton(" گەڕانەوە")
+            return_btn.setIcon(icon("fa5s.undo", Colors.TEXT_SECONDARY))
             return_btn.setProperty("secondary", True)
             return_btn.clicked.connect(lambda _, bid=b["id"]: self.on_return_to_supplier_clicked(bid))
             actions_layout.addWidget(loss_btn)

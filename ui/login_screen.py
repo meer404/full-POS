@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QDialog,
+    QFrame,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 import auth
+from ui.style import Colors, apply_card_shadow, icon
 
 
 class LoginScreen(QDialog):
@@ -22,43 +25,77 @@ class LoginScreen(QDialog):
         self.user: auth.User | None = None
 
         self.setWindowTitle("چوونەژوورەوە - سیستەمی فرۆشتن")
-        self.setFixedSize(360, 320)
+        self.resize(900, 600)
         self.setLayoutDirection(Qt.RightToLeft)
+        self.setStyleSheet(f"QDialog {{ background-color: {Colors.BG}; }}")
 
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addStretch()
+
+        center_row = QHBoxLayout()
+        center_row.addStretch()
+
+        card = QFrame()
+        card.setObjectName("loginCard")
+        card.setFixedWidth(380)
+        apply_card_shadow(card, blur=36, y_offset=6, alpha=45)
+
+        layout = QVBoxLayout(card)
         layout.setSpacing(14)
-        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setContentsMargins(36, 40, 36, 36)
+
+        logo_label = QLabel()
+        logo_label.setPixmap(icon("fa5s.cash-register", Colors.PRIMARY).pixmap(QSize(56, 56)))
+        logo_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(logo_label)
 
         title = QLabel("سیستەمی خەزنە / فرۆشتن")
         title.setProperty("role", "title")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        layout.addSpacing(10)
+        subtitle = QLabel("بۆ بەردەوامبوون بچۆرەژوورەوە")
+        subtitle.setProperty("role", "caption")
+        subtitle.setAlignment(Qt.AlignCenter)
+        layout.addWidget(subtitle)
 
-        layout.addWidget(QLabel("ناوی بەکارهێنەر:"))
+        layout.addSpacing(12)
+
+        layout.addWidget(QLabel("ناوی بەکارهێنەر"))
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("ناوی بەکارهێنەر بنووسە")
+        self.username_input.setMinimumHeight(40)
         layout.addWidget(self.username_input)
 
-        layout.addWidget(QLabel("وشەی نهێنی:"))
+        layout.addWidget(QLabel("وشەی نهێنی"))
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setPlaceholderText("وشەی نهێنی بنووسە")
+        self.password_input.setMinimumHeight(40)
         layout.addWidget(self.password_input)
 
         self.error_label = QLabel("")
         self.error_label.setProperty("role", "error")
         self.error_label.setAlignment(Qt.AlignCenter)
+        self.error_label.setWordWrap(True)
         layout.addWidget(self.error_label)
 
+        layout.addSpacing(4)
+
         self.login_button = QPushButton("چوونەژوورەوە")
+        self.login_button.setMinimumHeight(44)
         self.login_button.setDefault(True)
         self.login_button.clicked.connect(self.attempt_login)
         layout.addWidget(self.login_button)
 
         self.username_input.returnPressed.connect(self.password_input.setFocus)
         self.password_input.returnPressed.connect(self.attempt_login)
+
+        center_row.addWidget(card)
+        center_row.addStretch()
+        outer.addLayout(center_row)
+        outer.addStretch()
 
         self.username_input.setFocus()
 

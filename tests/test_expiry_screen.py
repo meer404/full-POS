@@ -41,15 +41,18 @@ def run():
 
         screen = ExpiryScreen(conn)
 
+        from PySide6.QtGui import QColor
+        from ui.expiry_screen import WARNING_COLOR, DANGER_COLOR
+
         assert screen.expired_table.rowCount() == 1
         assert screen.expired_table.item(0, 0).text() == "Yogurt"
-        print("OK: expired table shows only the expired batch (Yogurt)")
+        assert screen.expired_table.item(0, 0).background().color() == QColor(DANGER_COLOR)
+        print("OK: expired table shows only the expired batch (Yogurt), tinted with the danger color")
 
         assert screen.warning_table.rowCount() == 1
         assert screen.warning_table.item(0, 0).text() == "Juice"
-        from PySide6.QtGui import QColor
-        assert screen.warning_table.item(0, 0).background().color() == QColor("#fff3cd")
-        print("OK: warning table shows Juice (expiring in 3 days), highlighted yellow")
+        assert screen.warning_table.item(0, 0).background().color() == QColor(WARNING_COLOR)
+        print("OK: warning table shows Juice (expiring in 3 days), highlighted with the warning color")
 
         # --- Mark expired batch as loss ---
         screen.mark_as_loss(expired_batch)
