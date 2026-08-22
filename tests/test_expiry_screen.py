@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication
 
 import database
 import models
-from ui.expiry_screen import ExpiryScreen
+from ui.pages.expiry_page import ExpiryScreen
 
 
 def run():
@@ -42,7 +42,7 @@ def run():
         screen = ExpiryScreen(conn)
 
         from PySide6.QtGui import QColor
-        from ui.expiry_screen import WARNING_COLOR, DANGER_COLOR
+        from ui.pages.expiry_page import WARNING_COLOR, DANGER_COLOR
 
         assert screen.expired_table.rowCount() == 1
         assert screen.expired_table.item(0, 0).text() == "Yogurt"

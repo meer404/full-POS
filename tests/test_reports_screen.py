@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication
 
 import database
 import models
-from ui.reports_screen import ReportsScreen, PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY
+from ui.pages.reports_page import ReportsScreen, PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY
 
 
 def run():
@@ -42,18 +42,18 @@ def run():
 
         screen = ReportsScreen(conn)
 
-        assert screen.period_combo.currentText() == PERIOD_DAILY
-        assert screen.receipt_count_label.text() == "1"
-        assert screen.qty_label.text() == "10"
+        assert screen.current_period() == PERIOD_DAILY
+        assert screen.receipt_stat.value_label.text() == "1"
+        assert screen.qty_stat.value_label.text() == "10"
         assert screen.top_table.rowCount() == 1
         print("OK: default daily view shows today's single sale with correct totals")
 
-        screen.period_combo.setCurrentText(PERIOD_WEEKLY)
-        assert screen.receipt_count_label.text() == "1"
+        screen.set_period(PERIOD_WEEKLY)
+        assert screen.receipt_stat.value_label.text() == "1"
         print("OK: switching to weekly period auto-refreshes and still shows the sale")
 
-        screen.period_combo.setCurrentText(PERIOD_MONTHLY)
-        assert screen.receipt_count_label.text() == "1"
+        screen.set_period(PERIOD_MONTHLY)
+        assert screen.receipt_stat.value_label.text() == "1"
         print("OK: switching to monthly period works")
 
         conn.close()

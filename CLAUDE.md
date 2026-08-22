@@ -78,7 +78,7 @@ themselves by oldest `received_at`). It then walks that list, deducting from eac
 the requested quantity is satisfied — a single cart line can and often does split across two or
 more batches, and a **separate `sale_items` row is written per (product, batch) pair actually
 touched**, each carrying that batch's own cost basis via `batch_id`. This is why profit
-(`reports_screen.py` / `models.sales_report()`) is computed by joining `sale_items` to
+(`ui/pages/reports_page.py` / `models.sales_report()`) is computed by joining `sale_items` to
 `stock_batches` on `batch_id` rather than by looking up the product's current purchase price —
 the same product sold in one sale can have two different costs.
 
@@ -106,27 +106,49 @@ slot on top.
 
 ### Screen <-> permission wiring lives in main.py, not in the screens
 
-`ui/*.py` screens do not check `user.role` to hide themselves — `MainWindow.__init__` in
-`main.py` decides which tabs to `addTab()` at all, based on `user.is_admin`
-(`auth.User.is_admin`). Sales and Product Entry are added unconditionally; Reports, Expiry
-Management, and User Management are only added when `user.is_admin` is true. Field-level
-permission (e.g. only an admin can change `sale_price` on an existing product) is instead
-enforced inside the screen itself — see `ProductEntryScreen.on_barcode_entered()` /
-`.save()`, which gate `sale_price_input` edits on `self.user.is_admin`. When adding a new
-permission-gated feature, decide which pattern applies: whole-tab visibility → `main.py`;
-partial in-screen field gating → inside the screen using `self.user.is_admin`.
+`ui/pages/*.py` screens do not check `user.role` to hide themselves — `MainWindow.__init__` in
+`main.py` decides which pages exist at all (added to a `QStackedWidget`, navigated via the
+`Sidebar`), based on `user.is_admin` (`auth.User.is_admin`). Sales and Product Entry are added
+unconditionally; Reports, Expiry Management, and User Management are only added when
+`user.is_admin` is true. Field-level permission (e.g. only an admin can change `sale_price` on
+an existing product) is instead enforced inside the screen itself — see
+`ProductEntryScreen.on_barcode_entered()` / `.save()` in `ui/pages/products_page.py`, which gate
+`sale_price_input` edits on `self.user.is_admin`. When adding a new permission-gated feature,
+decide which pattern applies: whole-page visibility → `main.py`; partial in-screen field gating
+→ inside the screen using `self.user.is_admin`.
 
-### Kurdish/RTL UI conventions
+### UI architecture: theme / widgets / pages
 
 - All user-facing strings (labels, button text, error messages, dialog titles) are Kurdish
   Sorani. Code identifiers, comments, and commit messages stay in English — this split is
   intentional (see README) so the codebase stays readable for future non-Kurdish-speaking
   development while the product itself stays fully localized.
-- `ui/style.py` centralizes the RTL layout direction and stylesheet
-  (`apply_app_style(app)`, called once in `main.py`) plus semantic Qt properties used for
-  styling hooks: `QLabel[role="title"|"total"|"error"|"warning"]`,
-  `QPushButton[danger="true"|secondary="true"]`. Reuse these properties on new widgets instead
-  of hand-rolling inline styles, to keep the look consistent.
+- `ui/theme.py` is the single source of design tokens (`Colors`, `Spacing`, `Radius`) plus
+  `icon()` (qtawesome), `apply_card_shadow()`, and `apply_app_style(app)` — called once in
+  `main.py` — which loads `ui/style.qss`, substitutes its `${TOKEN}` placeholders from `Colors`/
+  `Spacing`/`Radius`, and applies the result app-wide along with the RTL layout direction and
+  base font. No color or size should be hardcoded anywhere outside these two files — add a new
+  token instead.
+- `ui/widgets/` holds reusable chrome shared across screens: `Card` (section container,
+  replaces raw `QGroupBox`), `StatCard` (KPI tile), `DataTable` (a `QTableWidget` wrapped in a
+  `QStackedWidget` with an `EmptyState` page — screens still just call
+  `data_table.table.setRowCount(...)`/`.setItem(...)`, the empty-state swap happens
+  automatically), `Badge` (status pill), `Toast`/`confirm()` (non-blocking success/error
+  notification and a blocking Yes/No confirmation for destructive actions — both replace
+  `QMessageBox`), `SpinInput` (a `QSpinBox` with native arrows hidden and explicit +/- buttons,
+  since QSpinBox's built-in arrows don't work well in RTL), `Sidebar`, and `TopBar`. Semantic Qt
+  properties for styling hooks live in `ui/style.qss`: `QLabel[role="title"|"total"|"error"|
+  "warning"|"caption"|"section"]`, `QPushButton[danger="true"|secondary="true"|segment="true"]`,
+  `QLabel[badge="success"|"warning"|"danger"|"info"|"admin"|"cashier"]`. Reuse these instead of
+  hand-rolling inline styles.
+- `ui/pages/` holds one file per screen (`login_page.py`, `sales_page.py`, `products_page.py`,
+  `reports_page.py`, `expiry_page.py`, `users_page.py`); the class names (`LoginScreen`,
+  `SalesScreen`, `ProductEntryScreen`, `ReportsScreen`, `ExpiryScreen`, `UsersScreen`) are
+  unchanged from before the `ui/pages/` split, so `main.py` and every `tests/test_*.py` still
+  import a familiar class, just from its new module path.
+- Toast/confirm are only ever triggered from UI-facing `on_X_clicked()` slots, never from the
+  headless core logic methods — same reasoning as the save()/on_X_clicked() split above, so
+  headless tests never hit a blocking dialog.
 - Local (store-generated) barcodes always start with `"9"` and are 13 digits
   (`models.generate_local_barcode`, prefix reserved via `LOCAL_BARCODE_PREFIX`) specifically so
   they can never collide with real-world EAN-13 codes scanned off actual products.

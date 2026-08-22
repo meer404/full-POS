@@ -1,0 +1,410 @@
+/* Application-wide stylesheet. Loaded and token-substituted by ui/theme.py:load_stylesheet().
+   Do not hardcode colors or sizes here beyond what a token placeholder can express — add a new
+   token in ui/theme.py instead. */
+
+* {
+    font-family: ${FONT_STACK};
+    font-size: 13px;
+}
+QWidget {
+    background-color: ${BG};
+    color: ${TEXT_PRIMARY};
+}
+QMainWindow, QDialog {
+    background-color: ${BG};
+}
+QToolTip {
+    background-color: ${TEXT_PRIMARY};
+    color: ${TEXT_ON_ACCENT};
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* ---- Buttons ---- */
+QPushButton {
+    background-color: ${GRADIENT_PRIMARY};
+    color: ${TEXT_ON_ACCENT};
+    border: none;
+    border-radius: ${RADIUS_INPUT}px;
+    padding: 10px 20px;
+    font-weight: 700;
+}
+QPushButton:hover { background-color: ${GRADIENT_PRIMARY_HOVER}; }
+QPushButton:pressed { background-color: ${PRIMARY_PRESSED}; }
+QPushButton:disabled { background-color: #BFC9D6; color: #F1F3F6; }
+
+QPushButton[danger="true"] { background-color: ${GRADIENT_DANGER}; }
+QPushButton[danger="true"]:hover { background-color: ${GRADIENT_DANGER_HOVER}; }
+QPushButton[danger="true"]:pressed { background-color: ${DANGER_HOVER}; }
+
+QPushButton[secondary="true"] {
+    background-color: transparent;
+    color: ${TEXT_SECONDARY};
+    border: 1.5px solid ${BORDER};
+}
+QPushButton[secondary="true"]:hover {
+    background-color: ${ROW_HOVER};
+    color: ${TEXT_PRIMARY};
+    border-color: ${SECONDARY};
+}
+QPushButton[secondary="true"]:pressed { background-color: ${BORDER}; }
+
+QPushButton[segment="true"] {
+    background-color: ${SURFACE};
+    color: ${TEXT_SECONDARY};
+    border: 1.5px solid ${BORDER};
+    border-radius: ${RADIUS_INPUT}px;
+    padding: 8px 16px;
+    font-weight: 700;
+}
+QPushButton[segment="true"]:checked {
+    background-color: ${GRADIENT_PRIMARY};
+    color: ${TEXT_ON_ACCENT};
+    border-color: ${PRIMARY};
+}
+QPushButton[segment="true"]:hover:!checked { background-color: ${ROW_HOVER}; }
+
+/* ---- Inputs ---- */
+QLineEdit, QComboBox, QDateEdit, QSpinBox {
+    background-color: ${SURFACE};
+    border: 1.5px solid ${BORDER};
+    border-radius: ${RADIUS_INPUT}px;
+    padding: 10px 12px;
+    min-height: 24px;
+    selection-background-color: ${SECONDARY_TINT};
+}
+QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {
+    border: 1.5px solid ${PRIMARY};
+}
+QLineEdit::placeholder { color: ${TEXT_SECONDARY}; }
+QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled, QSpinBox:disabled {
+    background-color: ${SURFACE_ALT};
+    color: ${TEXT_SECONDARY};
+}
+
+/* Spin boxes: native up/down arrows are unusable in RTL layouts, so hide them entirely.
+   ui/widgets/spin_input.py adds explicit +/- buttons instead. */
+QSpinBox::up-button, QSpinBox::down-button {
+    width: 0px;
+    border: none;
+}
+
+QLineEdit#barcodeInput {
+    font-size: 16px;
+    font-weight: 600;
+    padding: 16px;
+    border-radius: ${RADIUS_INPUT}px;
+    border: 2px solid ${BORDER};
+}
+
+/* ---- Sales screen: search result cards ---- */
+QFrame#resultCard {
+    background-color: ${SURFACE};
+    border: 1px solid ${BORDER};
+    border-radius: 8px;
+}
+QFrame#resultCard:hover {
+    background-color: ${PRIMARY_TINT};
+    border-color: ${PRIMARY};
+}
+QLineEdit#barcodeInput:focus {
+    border: 2px solid ${PRIMARY};
+}
+
+/* ---- Cards ---- */
+QGroupBox {
+    background-color: ${SURFACE};
+    border: 1px solid ${BORDER};
+    border-radius: ${RADIUS_CARD}px;
+    margin-top: 14px;
+    padding: ${SPACE_LG}px;
+    font-weight: 600;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top right;
+    padding: 2px 8px;
+    left: -8px;
+    color: ${TEXT_PRIMARY};
+    font-size: 15px;
+    font-weight: 600;
+}
+
+QFrame#card {
+    background-color: ${SURFACE};
+    border: 1px solid ${BORDER};
+    border-radius: ${RADIUS_CARD}px;
+}
+QFrame#card QLabel[role="cardTitle"] {
+    font-size: 17px;
+    font-weight: 600;
+    color: ${TEXT_PRIMARY};
+}
+QFrame#cardDivider {
+    background-color: ${BORDER};
+    max-height: 1px;
+    min-height: 1px;
+}
+QFrame#totalCard {
+    background-color: ${GRADIENT_TOTAL};
+    border: 1.5px solid ${PRIMARY_LIGHT};
+    border-radius: ${RADIUS_CARD}px;
+}
+QFrame#loginCard {
+    background-color: ${SURFACE};
+    border-radius: 16px;
+}
+
+/* ---- StatCard ---- */
+QFrame#statIconCircle {
+    border-radius: 22px;
+}
+QLabel[role="statValue"] {
+    font-size: 30px;
+    font-weight: 700;
+    color: ${TEXT_PRIMARY};
+}
+QLabel[role="statLabel"] {
+    color: ${TEXT_SECONDARY};
+    font-size: 12px;
+    font-weight: 600;
+}
+QLabel[role="statDelta"] {
+    font-size: 12px;
+    font-weight: 700;
+    color: ${PRIMARY};
+}
+
+/* ---- Badges (status pills) ---- */
+QLabel[badge="success"] {
+    background-color: ${SUCCESS_BG};
+    color: ${SUCCESS};
+    border-radius: ${RADIUS_PILL}px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+QLabel[badge="warning"] {
+    background-color: ${WARNING_BG};
+    color: #8A5A00;
+    border-radius: ${RADIUS_PILL}px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+QLabel[badge="danger"] {
+    background-color: ${DANGER_BG};
+    color: ${DANGER};
+    border-radius: ${RADIUS_PILL}px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+QLabel[badge="info"] {
+    background-color: ${INFO_BG};
+    color: ${INFO};
+    border-radius: ${RADIUS_PILL}px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+QLabel[badge="admin"] {
+    background-color: ${ROLE_ADMIN_BG};
+    color: ${ROLE_ADMIN};
+    border-radius: ${RADIUS_PILL}px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+QLabel[badge="cashier"] {
+    background-color: ${ROLE_CASHIER_BG};
+    color: ${ROLE_CASHIER};
+    border-radius: ${RADIUS_PILL}px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* ---- Tables ---- */
+QTableWidget {
+    background-color: ${SURFACE};
+    alternate-background-color: ${ROW_ALT};
+    border: 1px solid ${BORDER};
+    border-radius: 10px;
+    gridline-color: transparent;
+    selection-background-color: ${SECONDARY_TINT};
+    selection-color: ${TEXT_PRIMARY};
+}
+QTableWidget::item {
+    padding: 6px;
+    border-bottom: 1px solid ${BORDER};
+}
+QTableWidget::item:hover {
+    background-color: ${ROW_HOVER};
+}
+QHeaderView::section {
+    background-color: ${SURFACE_ALT};
+    color: ${TEXT_SECONDARY};
+    padding: 12px 8px;
+    border: none;
+    border-bottom: 1px solid ${BORDER};
+    font-weight: 700;
+    font-size: 12px;
+}
+QListWidget {
+    background-color: ${SURFACE};
+    border: 1px solid ${BORDER};
+    border-radius: 10px;
+    padding: 4px;
+}
+QListWidget::item {
+    padding: 4px;
+    border-radius: 8px;
+    margin: 2px;
+}
+QListWidget::item:hover { background-color: ${ROW_HOVER}; }
+QListWidget::item:selected { background-color: ${SECONDARY_TINT}; color: ${TEXT_PRIMARY}; }
+
+QTableWidget#expiredTable::item:hover { background-color: ${DANGER_BG_HOVER}; }
+QTableWidget#warningTable::item:hover { background-color: ${WARNING_BG_HOVER}; }
+
+/* ---- Tabs ---- */
+QTabWidget::pane {
+    border: 1px solid ${BORDER};
+    border-radius: ${RADIUS_CARD}px;
+    background: ${BG};
+    top: -1px;
+}
+QTabBar::tab {
+    background: ${SURFACE};
+    color: ${TEXT_SECONDARY};
+    padding: 10px 20px;
+    margin: 3px;
+    border-radius: 9px;
+    font-weight: 600;
+    border: 1px solid ${BORDER};
+}
+QTabBar::tab:selected {
+    background: ${SECONDARY};
+    color: ${TEXT_ON_ACCENT};
+    border: 1px solid ${SECONDARY};
+}
+QTabBar::tab:hover:!selected {
+    background: ${ROW_HOVER};
+}
+
+/* ---- Labels (role-based type scale) ---- */
+QLabel[role="title"] {
+    font-size: 20px;
+    font-weight: 700;
+    color: ${TEXT_PRIMARY};
+}
+QLabel[role="section"] {
+    font-size: 15px;
+    font-weight: 600;
+    color: ${TEXT_PRIMARY};
+}
+QLabel[role="total"] {
+    font-size: 22px;
+    font-weight: 800;
+    color: ${PRIMARY};
+}
+QLabel[role="grandtotal"] {
+    font-size: 32px;
+    font-weight: 800;
+    color: ${PRIMARY};
+}
+QLabel[role="error"] {
+    color: ${DANGER};
+    font-weight: 600;
+}
+QLabel[role="warning"] {
+    color: ${WARNING};
+    font-weight: 700;
+}
+QLabel[role="caption"] {
+    color: ${TEXT_SECONDARY};
+    font-size: 12px;
+}
+QLabel[role="margin"] {
+    color: ${PRIMARY};
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QCheckBox { spacing: 8px; }
+
+/* ---- Sidebar navigation ---- */
+QFrame#sidebar {
+    background-color: ${SURFACE};
+    border-left: 1px solid ${BORDER};
+}
+QFrame#sidebarBrand {
+    border-bottom: 1px solid ${BORDER};
+}
+QPushButton#navButton {
+    background-color: transparent;
+    color: ${TEXT_SECONDARY};
+    border: none;
+    border-radius: 0px;
+    text-align: right;
+    padding: 12px 18px;
+    font-weight: 600;
+}
+QPushButton#navButton:hover:!checked { background-color: ${ROW_HOVER}; }
+QPushButton#navButton:checked {
+    background-color: ${PRIMARY_TINT};
+    color: ${PRIMARY};
+    font-weight: 700;
+}
+QFrame#sidebarIndicator {
+    background-color: ${GRADIENT_PRIMARY};
+    border-radius: 2px;
+}
+QFrame#sidebarUserCard {
+    background-color: ${SURFACE_ALT};
+    border-top: 1px solid ${BORDER};
+    border-radius: 0px;
+}
+QLabel#sidebarAvatar {
+    background-color: ${GRADIENT_PRIMARY};
+    color: ${TEXT_ON_ACCENT};
+    border-radius: 16px;
+    font-weight: 700;
+}
+
+/* ---- Top bar / header ---- */
+QFrame#topBar {
+    background-color: ${SURFACE};
+    border-bottom: 1px solid ${BORDER};
+}
+QFrame#userChip {
+    background-color: ${BG};
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+
+/* ---- Toast ---- */
+QFrame#toast {
+    border-radius: ${RADIUS_CARD}px;
+    padding: 12px 18px;
+}
+QFrame#toast[kind="success"] {
+    background-color: ${GRADIENT_PRIMARY};
+}
+QFrame#toast[kind="error"] {
+    background-color: ${GRADIENT_DANGER};
+}
+QFrame#toast QLabel {
+    color: ${TEXT_ON_ACCENT};
+    background-color: transparent;
+    font-weight: 600;
+}
+
+/* ---- Empty state ---- */
+QLabel[role="emptyIcon"] { background-color: transparent; }
+QLabel[role="emptyText"] {
+    color: ${TEXT_SECONDARY};
+    font-size: 13px;
+}

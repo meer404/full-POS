@@ -17,11 +17,11 @@ import auth
 import backup
 import database
 import models
-from ui.product_entry import ProductEntryScreen
-from ui.sales_screen import SalesScreen
-from ui.reports_screen import ReportsScreen
-from ui.expiry_screen import ExpiryScreen
-from ui.users_screen import UsersScreen
+from ui.pages.products_page import ProductEntryScreen
+from ui.pages.sales_page import SalesScreen
+from ui.pages.reports_page import ReportsScreen
+from ui.pages.expiry_page import ExpiryScreen
+from ui.pages.users_page import UsersScreen
 from main import MainWindow
 
 
@@ -105,10 +105,10 @@ def run():
 
         # ---------- 3. Reports: today's numbers reflect the sale ----------
         reports = ReportsScreen(conn)
-        assert reports.receipt_count_label.text() == "1"
-        assert reports.qty_label.text() == "26"
+        assert reports.receipt_stat.value_label.text() == "1"
+        assert reports.qty_stat.value_label.text() == "26"
         expected_profit = (1000 - 700) * 20 + (1000 - 850) * 5 + (500 - 300) * 1
-        assert str(reports.profit_label.text()).replace(" د.ع", "").replace(",", "") == str(expected_profit)
+        assert str(reports.profit_stat.value_label.text()).replace(" د.ع", "").replace(",", "") == str(expected_profit)
         print("OK: reports screen reflects the sale correctly (1 receipt, 26 items, profit matches FIFO cost)")
 
         # ---------- 4. Expiry management: milk's near-expiry batch shows a warning ----------
@@ -127,10 +127,10 @@ def run():
 
         admin_window = MainWindow(conn, admin)
         cashier_window = MainWindow(conn, cashier)
-        assert admin_window.centralWidget().count() == 5, "admin should see all 5 tabs"
-        assert cashier_window.centralWidget().count() == 2, "cashier should see only Sales + Product Entry"
-        admin_tab_labels = {admin_window.centralWidget().tabText(i) for i in range(5)}
-        cashier_tab_labels = {cashier_window.centralWidget().tabText(i) for i in range(2)}
+        assert admin_window.stack.count() == 5, "admin should see all 5 pages"
+        assert cashier_window.stack.count() == 2, "cashier should see only Sales + Product Entry"
+        admin_tab_labels = set(admin_window._page_titles)
+        cashier_tab_labels = set(cashier_window._page_titles)
         assert cashier_tab_labels == {"فرۆشتن", "زیادکردنی بەرهەم"}
         assert admin_tab_labels.issuperset(cashier_tab_labels)
         print("OK: role-based tab visibility correct (cashier sees 2 tabs, admin sees 5)")

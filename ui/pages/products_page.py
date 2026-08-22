@@ -3,21 +3,17 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
-    QSpinBox,
-    QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
@@ -25,10 +21,20 @@ from PySide6.QtWidgets import (
 
 import auth
 import models
-from ui.style import Colors, apply_card_shadow, icon
+from ui.theme import Colors, icon
+from ui.widgets.card import Card
+from ui.widgets.data_table import DataTable
+from ui.widgets.spin_input import SpinInput
+from ui.widgets.toast import show_toast
 
 MAX_PRICE = 999_999_999
 MAX_QTY = 1_000_000
+
+
+def _section_label(text: str) -> QLabel:
+    label = QLabel(text)
+    label.setProperty("role", "section")
+    return label
 
 
 class ProductEntryScreen(QWidget):
@@ -47,68 +53,79 @@ class ProductEntryScreen(QWidget):
         root.setContentsMargins(20, 20, 20, 20)
         root.setSpacing(20)
 
-        # ---- Left: form ----
-        form_box = QGroupBox("زیادکردنی بەرهەم / پڕکردنەوەی کۆگا")
-        apply_card_shadow(form_box)
-        form_layout = QVBoxLayout(form_box)
-        form_layout.setSpacing(16)
+        # ---- Right: form ----
+        form_card = Card("زیادکردنی بەرهەم / پڕکردنەوەی کۆگا")
+        form_card.setMinimumWidth(380)
 
         barcode_row = QHBoxLayout()
         self.barcode_input = QLineEdit()
         self.barcode_input.setObjectName("barcodeInput")
+        self.barcode_input.setLayoutDirection(Qt.LeftToRight)
         self.barcode_input.setPlaceholderText("بارکۆد سکان بکە یان بنووسە و Enter دابگرە")
         self.barcode_input.returnPressed.connect(self.on_barcode_entered)
-        barcode_row.addWidget(QLabel("بارکۆد:"))
-        barcode_row.addWidget(self.barcode_input)
+        barcode_row.addWidget(self.barcode_input, 1)
         self.gen_barcode_btn = QPushButton("دروستکردنی بارکۆدی ناوخۆیی")
         self.gen_barcode_btn.setIcon(icon("fa5s.barcode", Colors.TEXT_SECONDARY))
         self.gen_barcode_btn.setProperty("secondary", True)
+        self.gen_barcode_btn.setCursor(Qt.PointingHandCursor)
         self.gen_barcode_btn.clicked.connect(self.generate_barcode)
         barcode_row.addWidget(self.gen_barcode_btn)
-        form_layout.addLayout(barcode_row)
+        form_card.body.addLayout(barcode_row)
 
         self.mode_label = QLabel("")
         self.mode_label.setProperty("role", "warning")
         self.mode_label.setWordWrap(True)
-        form_layout.addWidget(self.mode_label)
+        form_card.body.addWidget(self.mode_label)
 
-        fields = QFormLayout()
-        fields.setSpacing(12)
-        fields.setVerticalSpacing(12)
+        # ---- Basic info ----
+        form_card.body.addWidget(_section_label("زانیاری بنەڕەتی"))
+        basic_fields = QFormLayout()
+        basic_fields.setVerticalSpacing(12)
         self.name_input = QLineEdit()
-        fields.addRow("ناوی بەرهەم:", self.name_input)
+        basic_fields.addRow("ناوی بەرهەم:", self.name_input)
 
         self.category_input = QLineEdit()
-        fields.addRow("جۆر:", self.category_input)
+        basic_fields.addRow("جۆر:", self.category_input)
 
         self.unit_input = QComboBox()
         self.unit_input.setEditable(True)
         self.unit_input.addItems(["دانە", "کیلۆگرام", "لیتر", "پاکەت", "کارتۆن"])
-        fields.addRow("یەکە:", self.unit_input)
+        basic_fields.addRow("یەکە:", self.unit_input)
+        form_card.body.addLayout(basic_fields)
 
-        self.min_stock_input = QSpinBox()
-        self.min_stock_input.setRange(0, MAX_QTY)
-        self.min_stock_input.setValue(5)
-        fields.addRow("کەمترین ڕادەی کۆگا:", self.min_stock_input)
+        # ---- Pricing & stock ----
+        form_card.body.addWidget(_section_label("نرخ و کۆگا"))
+        pricing_fields = QFormLayout()
+        pricing_fields.setVerticalSpacing(12)
 
-        self.sale_price_input = QSpinBox()
-        self.sale_price_input.setRange(0, MAX_PRICE)
-        self.sale_price_input.setSuffix(" د.ع")
-        fields.addRow("نرخی فرۆشتن:", self.sale_price_input)
+        self.min_stock_input = SpinInput(minimum=0, maximum=MAX_QTY, value=5)
+        pricing_fields.addRow("کەمترین ڕادەی کۆگا:", self.min_stock_input)
 
-        self.purchase_price_input = QSpinBox()
-        self.purchase_price_input.setRange(0, MAX_PRICE)
-        self.purchase_price_input.setSuffix(" د.ع")
-        fields.addRow("نرخی کڕین:", self.purchase_price_input)
+        self.sale_price_input = SpinInput(minimum=0, maximum=MAX_PRICE, suffix=" د.ع")
+        pricing_fields.addRow("نرخی فرۆشتن:", self.sale_price_input)
 
-        self.quantity_input = QSpinBox()
-        self.quantity_input.setRange(1, MAX_QTY)
-        self.quantity_input.setValue(1)
-        fields.addRow("بڕ (دانە):", self.quantity_input)
+        self.purchase_price_input = SpinInput(minimum=0, maximum=MAX_PRICE, suffix=" د.ع")
+        pricing_fields.addRow("نرخی کڕین:", self.purchase_price_input)
 
+        self.margin_label = QLabel("")
+        self.margin_label.setProperty("role", "margin")
+        pricing_fields.addRow("", self.margin_label)
+        self.sale_price_input.valueChanged.connect(self._update_margin)
+        self.purchase_price_input.valueChanged.connect(self._update_margin)
+
+        self.quantity_input = SpinInput(minimum=1, maximum=MAX_QTY, value=1)
+        pricing_fields.addRow("بڕ (دانە):", self.quantity_input)
+
+        form_card.body.addLayout(pricing_fields)
+
+        # ---- Dates ----
+        form_card.body.addWidget(_section_label("بەروار"))
+        date_fields = QFormLayout()
+        date_fields.setVerticalSpacing(12)
         expiry_row = QHBoxLayout()
         self.expiry_input = QDateEdit()
         self.expiry_input.setCalendarPopup(True)
+        self.expiry_input.setDisplayFormat("yyyy/MM/dd")
         self.expiry_input.setDate(QDate.currentDate().addYears(1))
         self.no_expiry_checkbox = QCheckBox("بەسەرچوون نییە")
         self.no_expiry_checkbox.stateChanged.connect(
@@ -116,59 +133,63 @@ class ProductEntryScreen(QWidget):
         )
         expiry_row.addWidget(self.expiry_input)
         expiry_row.addWidget(self.no_expiry_checkbox)
-        fields.addRow("بەرواری بەسەرچوون:", expiry_row)
-
-        form_layout.addLayout(fields)
+        date_fields.addRow("بەرواری بەسەرچوون:", expiry_row)
+        form_card.body.addLayout(date_fields)
 
         self.error_label = QLabel("")
         self.error_label.setProperty("role", "error")
         self.error_label.setWordWrap(True)
-        form_layout.addWidget(self.error_label)
+        form_card.body.addWidget(self.error_label)
 
         btn_row = QHBoxLayout()
         self.save_btn = QPushButton("پاشەکەوتکردن")
         self.save_btn.setIcon(icon("fa5s.check", "white"))
+        self.save_btn.setCursor(Qt.PointingHandCursor)
         self.save_btn.clicked.connect(self.on_save_clicked)
         self.clear_btn = QPushButton("سڕینەوەی خانەکان")
         self.clear_btn.setProperty("secondary", True)
+        self.clear_btn.setCursor(Qt.PointingHandCursor)
         self.clear_btn.clicked.connect(self.reset_form)
         btn_row.addWidget(self.save_btn)
         btn_row.addWidget(self.clear_btn)
-        form_layout.addLayout(btn_row)
+        form_card.body.addLayout(btn_row)
 
-        form_layout.addStretch()
-        root.addWidget(form_box, 2)
+        root.addWidget(form_card, 2)
 
-        # ---- Right: product table ----
-        table_box = QGroupBox("لیستی بەرهەمەکان")
-        apply_card_shadow(table_box)
-        table_layout = QVBoxLayout(table_box)
-        table_layout.setSpacing(12)
+        # ---- Left: product table ----
+        table_card = Card("لیستی بەرهەمەکان")
 
         self.low_stock_label = QLabel("")
         self.low_stock_label.setProperty("role", "warning")
         self.low_stock_label.setWordWrap(True)
-        table_layout.addWidget(self.low_stock_label)
+        table_card.body.addWidget(self.low_stock_label)
 
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(
-            ["ناو", "بارکۆد", "نرخی فرۆشتن", "کۆی کۆگا", "نزیکترین بەسەرچوون"]
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("گەڕان بە ناو یان بارکۆد...")
+        self.search_box.textChanged.connect(self.refresh_table)
+        table_card.body.addWidget(self.search_box)
+
+        self.data_table = DataTable(
+            ["ناو", "بارکۆد", "نرخی فرۆشتن", "کۆی کۆگا", "نزیکترین بەسەرچوون"],
+            empty_icon="fa5s.box-open",
+            empty_text="هیچ بەرهەمێک تۆمار نەکراوە — لە فۆرمی لای ڕاست یەکێک زیاد بکە",
         )
+        self.table = self.data_table.table
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setAlternatingRowColors(True)
-        self.table.setMouseTracking(True)
-        self.table.verticalHeader().setDefaultSectionSize(38)
-        self.table.verticalHeader().setVisible(False)
-        table_layout.addWidget(self.table)
+        self.table.verticalHeader().setDefaultSectionSize(42)
+        table_card.body.addWidget(self.data_table, 1)
 
-        root.addWidget(table_box, 3)
+        root.addWidget(table_card, 3)
 
-        # Cashiers cannot change sale price on an existing product; they can still
-        # set it for a brand-new product they are entering.
-        if not self.user.is_admin:
-            pass  # enforced dynamically in on_barcode_entered
+    # -------------------------------------------------------------- margin
+    def _update_margin(self):
+        sale_price = self.sale_price_input.value()
+        purchase_price = self.purchase_price_input.value()
+        if sale_price <= 0:
+            self.margin_label.setText("")
+            return
+        margin_pct = round((sale_price - purchase_price) / sale_price * 100)
+        self.margin_label.setText(f"قازانج: {margin_pct}%")
 
     # ------------------------------------------------------------- actions
     def generate_barcode(self):
@@ -212,12 +233,13 @@ class ProductEntryScreen(QWidget):
             self.unit_input.setEnabled(False)
             self.min_stock_input.setEnabled(False)
             self.sale_price_input.setEnabled(self.user.is_admin)
-            self.purchase_price_input.setFocus()
+            self.purchase_price_input.spinbox.setFocus()
+        self._update_margin()
 
     def on_save_clicked(self):
-        """UI-facing slot: performs the save and shows a blocking confirmation dialog."""
+        """UI-facing slot: performs the save and shows a toast confirmation."""
         if self.save():
-            QMessageBox.information(self, "سەرکەوتوو", "بەرهەم/کۆگا بە سەرکەوتوویی پاشەکەوت کرا")
+            show_toast(self.window(), "بەرهەم/کۆگا بە سەرکەوتوویی پاشەکەوت کرا", "success")
             self.reset_form()
             self.refresh_table()
 
@@ -288,17 +310,30 @@ class ProductEntryScreen(QWidget):
         self.min_stock_input.setEnabled(True)
         self.sale_price_input.setEnabled(True)
         self.error_label.setText("")
+        self.margin_label.setText("")
         self.barcode_input.setFocus()
 
     def refresh_table(self):
         products = models.list_products_with_stock(self.conn)
+        query = self.search_box.text().strip().lower()
+        if query:
+            products = [
+                p for p in products
+                if query in p["name"].lower() or query in p["barcode"].lower()
+            ]
+
         self.table.setRowCount(len(products))
         for row, p in enumerate(products):
             self.table.setItem(row, 0, QTableWidgetItem(p["name"]))
-            self.table.setItem(row, 1, QTableWidgetItem(p["barcode"]))
-            self.table.setItem(row, 2, QTableWidgetItem(f"{p['sale_price']:,} د.ع"))
-            self.table.setItem(row, 3, QTableWidgetItem(str(p["total_stock"])))
-            self.table.setItem(row, 4, QTableWidgetItem(p["nearest_expiry"] or "—"))
+            for col, text in (
+                (1, p["barcode"]),
+                (2, f"{p['sale_price']:,} د.ع"),
+                (3, str(p["total_stock"])),
+                (4, p["nearest_expiry"] or "—"),
+            ):
+                item = QTableWidgetItem(text)
+                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.table.setItem(row, col, item)
 
         low_stock = models.list_low_stock_products(self.conn)
         if low_stock:

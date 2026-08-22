@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication
 import auth
 import database
 import models
-from ui.product_entry import ProductEntryScreen
+from ui.pages.products_page import ProductEntryScreen
 
 
 def run():

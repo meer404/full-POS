@@ -10,8 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from PySide6.QtWidgets import QApplication
 
 import database
-from ui.style import apply_app_style
-from ui.login_screen import LoginScreen
+from ui.theme import apply_app_style
+from ui.pages.login_page import LoginScreen
 from screenshot_helpers import save_screenshot
 
 app = QApplication.instance() or QApplication([])

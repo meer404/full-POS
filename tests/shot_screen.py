@@ -17,7 +17,7 @@ from PySide6.QtWidgets import QApplication
 import auth
 import database
 import models
-from ui.style import apply_app_style
+from ui.theme import apply_app_style
 from screenshot_helpers import save_screenshot
 
 SCREEN = sys.argv[1]
@@ -50,22 +50,22 @@ models.complete_sale(
 )
 
 if SCREEN == "product_entry":
-    from ui.product_entry import ProductEntryScreen
+    from ui.pages.products_page import ProductEntryScreen
     screen = ProductEntryScreen(conn, admin)
 elif SCREEN == "sales":
-    from ui.sales_screen import SalesScreen
+    from ui.pages.sales_page import SalesScreen
     screen = SalesScreen(conn, admin)
     screen.barcode_input.setText("1234567890123")
     screen.on_barcode_scanned()
     screen.add_to_cart(models.find_product_by_barcode(conn, "9998887776665"))
 elif SCREEN == "reports":
-    from ui.reports_screen import ReportsScreen
+    from ui.pages.reports_page import ReportsScreen
     screen = ReportsScreen(conn)
 elif SCREEN == "expiry":
-    from ui.expiry_screen import ExpiryScreen
+    from ui.pages.expiry_page import ExpiryScreen
     screen = ExpiryScreen(conn)
 elif SCREEN == "users":
-    from ui.users_screen import UsersScreen
+    from ui.pages.users_page import UsersScreen
     auth.create_user(conn, "cashier1", "pass123", "cashier")
     screen = UsersScreen(conn, admin)
 elif SCREEN == "main_admin":

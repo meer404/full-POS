@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from PySide6.QtWidgets import QApplication
 
 import database
-from ui.login_screen import LoginScreen
+from ui.pages.login_page import LoginScreen
 
 
 def run():

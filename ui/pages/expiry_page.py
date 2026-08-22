@@ -4,21 +4,23 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QGroupBox,
+    QAbstractItemView,
     QHBoxLayout,
     QHeaderView,
-    QMessageBox,
     QPushButton,
-    QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 import models
-from ui.style import Colors, apply_card_shadow, icon
+from ui.theme import Colors, icon
+from ui.widgets.data_table import DataTable
+from ui.widgets.toast import confirm, show_toast
 
 WARNING_DAYS = 7
 WARNING_COLOR = Colors.WARNING_BG
@@ -37,33 +39,45 @@ class ExpiryScreen(QWidget):
         root.setContentsMargins(20, 20, 20, 20)
         root.setSpacing(20)
 
-        expired_box = QGroupBox("بەرهەمە بەسەرچووەکان")
-        apply_card_shadow(expired_box)
-        expired_layout = QVBoxLayout(expired_box)
-        self.expired_table = QTableWidget(0, 6)
-        self.expired_table.setHorizontalHeaderLabels(
-            ["بەرهەم", "بڕ", "بەرواری بەسەرچوون", "نرخی کڕین", "زیانی مامەڵە", "بژاردەکان"]
-        )
-        self.expired_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.expired_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.expired_table.setMouseTracking(True)
-        self.expired_table.verticalHeader().setDefaultSectionSize(42)
-        self.expired_table.verticalHeader().setVisible(False)
-        expired_layout.addWidget(self.expired_table)
-        root.addWidget(expired_box)
+        self.tabs = QTabWidget()
 
-        warning_box = QGroupBox(f"ئاگاداری: نزیکن لە بەسەرچوون (کەمتر یان یەکسان بە {WARNING_DAYS} ڕۆژ)")
-        apply_card_shadow(warning_box)
-        warning_layout = QVBoxLayout(warning_box)
-        self.warning_table = QTableWidget(0, 3)
-        self.warning_table.setHorizontalHeaderLabels(["بەرهەم", "بڕ", "بەرواری بەسەرچوون"])
-        self.warning_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.warning_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.warning_table.setMouseTracking(True)
-        self.warning_table.verticalHeader().setDefaultSectionSize(38)
-        self.warning_table.verticalHeader().setVisible(False)
-        warning_layout.addWidget(self.warning_table)
-        root.addWidget(warning_box)
+        expired_tab = QWidget()
+        expired_layout = QVBoxLayout(expired_tab)
+        self.expired_data_table = DataTable(
+            ["بەرهەم", "بڕ", "بەرواری بەسەرچوون", "نرخی کڕین", "زیانی مامەڵە", "بژاردەکان"],
+            empty_icon="fa5s.check-circle",
+            empty_text="هیچ بەرهەمێکی بەسەرچوو نییە",
+        )
+        self.expired_table = self.expired_data_table.table
+        self.expired_table.setObjectName("expiredTable")
+        expired_header = self.expired_table.horizontalHeader()
+        expired_header.setSectionResizeMode(0, QHeaderView.Stretch)
+        for col in (1, 2, 3, 4):
+            expired_header.setSectionResizeMode(col, QHeaderView.ResizeToContents)
+        expired_header.setSectionResizeMode(5, QHeaderView.Fixed)
+        self.expired_table.setColumnWidth(5, 200)
+        self.expired_table.setSelectionMode(QAbstractItemView.NoSelection)
+        expired_layout.addWidget(self.expired_data_table)
+        self.tabs.addTab(expired_tab, "بەسەرچووەکان")
+
+        warning_tab = QWidget()
+        warning_layout = QVBoxLayout(warning_tab)
+        self.warning_data_table = DataTable(
+            ["بەرهەم", "بڕ", "بەرواری بەسەرچوون"],
+            empty_icon="fa5s.check-circle",
+            empty_text="هیچ بەرهەمێک نزیک نییە لە بەسەرچوون",
+        )
+        self.warning_table = self.warning_data_table.table
+        self.warning_table.setObjectName("warningTable")
+        warning_header = self.warning_table.horizontalHeader()
+        warning_header.setSectionResizeMode(0, QHeaderView.Stretch)
+        for col in (1, 2):
+            warning_header.setSectionResizeMode(col, QHeaderView.ResizeToContents)
+        self.warning_table.setSelectionMode(QAbstractItemView.NoSelection)
+        warning_layout.addWidget(self.warning_data_table)
+        self.tabs.addTab(warning_tab, f"ئاگاداری (کەمتر یان یەکسان بە {WARNING_DAYS} ڕۆژ)")
+
+        root.addWidget(self.tabs)
 
     # ------------------------------------------------------------- actions
     def mark_as_loss(self, batch_id: int):
@@ -75,12 +89,14 @@ class ExpiryScreen(QWidget):
         self.refresh()
 
     def on_mark_as_loss_clicked(self, batch_id: int):
-        self.mark_as_loss(batch_id)
-        QMessageBox.information(self, "تۆمارکرا", "وەک زیان تۆمارکرا")
+        if confirm(self, "دڵنیایت لەوەی ئەم بەرهەمە وەک زیان تۆمار بکەیت؟ ئەم کردارە ناگەڕێتەوە."):
+            self.mark_as_loss(batch_id)
+            show_toast(self.window(), "وەک زیان تۆمارکرا", "success")
 
     def on_return_to_supplier_clicked(self, batch_id: int):
-        self.return_to_supplier(batch_id)
-        QMessageBox.information(self, "تۆمارکرا", "گەڕایەوە بۆ دابینکەر")
+        if confirm(self, "دڵنیایت لەوەی ئەم بەرهەمە بگەڕێنیتەوە بۆ دابینکەر؟"):
+            self.return_to_supplier(batch_id)
+            show_toast(self.window(), "گەڕایەوە بۆ دابینکەر", "success")
 
     # ------------------------------------------------------------- refresh
     def refresh(self):
@@ -96,6 +112,8 @@ class ExpiryScreen(QWidget):
             loss_value = b["purchase_price"] * b["quantity"]
             price_item = QTableWidgetItem(f"{b['purchase_price']:,} د.ع")
             loss_item = QTableWidgetItem(f"{loss_value:,} د.ع")
+            for item in (qty_item, date_item, price_item, loss_item):
+                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             for item in (name_item, qty_item, date_item, price_item, loss_item):
                 item.setBackground(QColor(DANGER_COLOR))
             self.expired_table.setItem(row, 0, name_item)
@@ -111,10 +129,12 @@ class ExpiryScreen(QWidget):
             loss_btn = QPushButton(" زیان")
             loss_btn.setIcon(icon("fa5s.trash-alt", "white"))
             loss_btn.setProperty("danger", True)
+            loss_btn.setCursor(Qt.PointingHandCursor)
             loss_btn.clicked.connect(lambda _, bid=b["id"]: self.on_mark_as_loss_clicked(bid))
             return_btn = QPushButton(" گەڕانەوە")
             return_btn.setIcon(icon("fa5s.undo", Colors.TEXT_SECONDARY))
             return_btn.setProperty("secondary", True)
+            return_btn.setCursor(Qt.PointingHandCursor)
             return_btn.clicked.connect(lambda _, bid=b["id"]: self.on_return_to_supplier_clicked(bid))
             actions_layout.addWidget(loss_btn)
             actions_layout.addWidget(return_btn)
@@ -126,8 +146,13 @@ class ExpiryScreen(QWidget):
             name_item = QTableWidgetItem(b["product_name"])
             qty_item = QTableWidgetItem(f"{b['quantity']} {b['unit']}")
             date_item = QTableWidgetItem(b["expiry_date"])
+            for item in (qty_item, date_item):
+                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             for item in (name_item, qty_item, date_item):
                 item.setBackground(QColor(WARNING_COLOR))
             self.warning_table.setItem(row, 0, name_item)
             self.warning_table.setItem(row, 1, qty_item)
             self.warning_table.setItem(row, 2, date_item)
+
+        self.tabs.setTabText(0, f"بەسەرچووەکان ({len(expired)})")
+        self.tabs.setTabText(1, f"ئاگاداری ({len(soon)})")

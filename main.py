@@ -3,19 +3,28 @@ from __future__ import annotations
 
 import sys
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QMainWindow,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 import auth
 import backup
 import database
-from ui.style import Colors, apply_app_style, icon
-from ui.login_screen import LoginScreen
-from ui.product_entry import ProductEntryScreen
-from ui.sales_screen import SalesScreen
-from ui.reports_screen import ReportsScreen
-from ui.expiry_screen import ExpiryScreen
-from ui.users_screen import UsersScreen
+from ui.theme import apply_app_style
+from ui.pages.login_page import LoginScreen
+from ui.pages.products_page import ProductEntryScreen
+from ui.pages.sales_page import SalesScreen
+from ui.pages.reports_page import ReportsScreen
+from ui.pages.expiry_page import ExpiryScreen
+from ui.pages.users_page import UsersScreen
+from ui.widgets.sidebar import Sidebar
+from ui.widgets.topbar import TopBar
 
 
 class MainWindow(QMainWindow):
@@ -25,24 +34,57 @@ class MainWindow(QMainWindow):
         self.user = user
 
         self.setWindowTitle(f"سیستەمی خەزنە / فرۆشتن — {user.username} ({user.role})")
-        self.resize(1100, 700)
+        self.resize(1200, 750)
         self.setLayoutDirection(Qt.RightToLeft)
 
-        tabs = QTabWidget()
-        tabs.setIconSize(QSize(18, 18))
-        self.setCentralWidget(tabs)
-
-        tab_icon_color = Colors.TEXT_SECONDARY
-
-        # Every role can sell and enter/restock products.
-        tabs.addTab(SalesScreen(conn, user), icon("fa5s.shopping-cart", tab_icon_color), "فرۆشتن")
-        tabs.addTab(ProductEntryScreen(conn, user), icon("fa5s.box", tab_icon_color), "زیادکردنی بەرهەم")
-
-        # Admin-only tabs.
+        # (icon_name, label, widget) — every role gets Sales + Product Entry;
+        # Reports/Expiry/Users are admin-only, same gating as before (just sidebar now, not tabs).
+        nav_items: list[tuple[str, str, QWidget]] = [
+            ("fa5s.shopping-cart", "فرۆشتن", SalesScreen(conn, user)),
+            ("fa5s.box", "زیادکردنی بەرهەم", ProductEntryScreen(conn, user)),
+        ]
         if user.is_admin:
-            tabs.addTab(ReportsScreen(conn), icon("fa5s.chart-bar", tab_icon_color), "ڕاپۆرت")
-            tabs.addTab(ExpiryScreen(conn), icon("fa5s.exclamation-triangle", tab_icon_color), "بەسەرچوونی بەرهەم")
-            tabs.addTab(UsersScreen(conn, user), icon("fa5s.users", tab_icon_color), "بەڕێوەبردنی بەکارهێنەران")
+            nav_items += [
+                ("fa5s.chart-bar", "ڕاپۆرت", ReportsScreen(conn)),
+                ("fa5s.exclamation-triangle", "بەسەرچوونی بەرهەم", ExpiryScreen(conn)),
+                ("fa5s.users", "بەڕێوەبردنی بەکارهێنەران", UsersScreen(conn, user)),
+            ]
+        self._page_titles = [label for _, label, _ in nav_items]
+
+        self.stack = QStackedWidget()
+        for _, _, widget in nav_items:
+            self.stack.addWidget(widget)
+
+        self.sidebar = Sidebar(
+            [(name, label) for name, label, _ in nav_items],
+            username=user.username,
+            role=user.role,
+            on_logout=self.close,
+        )
+        self.sidebar.navigationChanged.connect(self.stack.setCurrentIndex)
+        self.sidebar.navigationChanged.connect(self._on_nav_changed)
+
+        self.topbar = TopBar()
+
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        content_layout.addWidget(self.topbar)
+        content_layout.addWidget(self.stack, 1)
+
+        shell = QWidget()
+        shell_layout = QHBoxLayout(shell)
+        shell_layout.setContentsMargins(0, 0, 0, 0)
+        shell_layout.setSpacing(0)
+        shell_layout.addWidget(self.sidebar)
+        shell_layout.addWidget(content, 1)
+        self.setCentralWidget(shell)
+
+        self._on_nav_changed(0)
+
+    def _on_nav_changed(self, index: int):
+        self.topbar.set_title(self._page_titles[index])
 
     def closeEvent(self, event):
         try:

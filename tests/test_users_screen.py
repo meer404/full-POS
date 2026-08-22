@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication
 
 import auth
 import database
-from ui.users_screen import UsersScreen
+from ui.pages.users_page import UsersScreen
 
 
 def run():

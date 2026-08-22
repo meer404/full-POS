@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 import auth
-from ui.style import Colors, apply_card_shadow, icon
+from ui.theme import Colors, apply_card_shadow, icon
 
 
 class LoginScreen(QDialog):
@@ -27,7 +27,6 @@ class LoginScreen(QDialog):
         self.setWindowTitle("چوونەژوورەوە - سیستەمی فرۆشتن")
         self.resize(900, 600)
         self.setLayoutDirection(Qt.RightToLeft)
-        self.setStyleSheet(f"QDialog {{ background-color: {Colors.BG}; }}")
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -65,14 +64,14 @@ class LoginScreen(QDialog):
         layout.addWidget(QLabel("ناوی بەکارهێنەر"))
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("ناوی بەکارهێنەر بنووسە")
-        self.username_input.setMinimumHeight(40)
+        self.username_input.setMinimumHeight(44)
         layout.addWidget(self.username_input)
 
         layout.addWidget(QLabel("وشەی نهێنی"))
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setPlaceholderText("وشەی نهێنی بنووسە")
-        self.password_input.setMinimumHeight(40)
+        self.password_input.setMinimumHeight(44)
         layout.addWidget(self.password_input)
 
         self.error_label = QLabel("")
@@ -84,7 +83,8 @@ class LoginScreen(QDialog):
         layout.addSpacing(4)
 
         self.login_button = QPushButton("چوونەژوورەوە")
-        self.login_button.setMinimumHeight(44)
+        self.login_button.setMinimumHeight(48)
+        self.login_button.setCursor(Qt.PointingHandCursor)
         self.login_button.setDefault(True)
         self.login_button.clicked.connect(self.attempt_login)
         layout.addWidget(self.login_button)

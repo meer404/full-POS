@@ -7,21 +7,21 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
-    QTableWidget,
     QTableWidgetItem,
-    QVBoxLayout,
     QWidget,
 )
 
 import auth
-from ui.style import Colors, apply_card_shadow, icon
+from ui.theme import Colors, icon
+from ui.widgets.badge import Badge
+from ui.widgets.card import Card
+from ui.widgets.data_table import DataTable
+from ui.widgets.toast import confirm, show_toast
 
 
 class UsersScreen(QWidget):
@@ -37,12 +37,9 @@ class UsersScreen(QWidget):
         root.setContentsMargins(20, 20, 20, 20)
         root.setSpacing(20)
 
-        form_box = QGroupBox("زیادکردنی بەکارهێنەری نوێ")
-        apply_card_shadow(form_box)
-        form_layout = QVBoxLayout(form_box)
-        form_layout.setSpacing(14)
+        form_card = Card("زیادکردنی بەکارهێنەری نوێ")
+        form_card.setMinimumWidth(340)
         fields = QFormLayout()
-        fields.setSpacing(12)
         fields.setVerticalSpacing(12)
 
         self.username_input = QLineEdit()
@@ -56,50 +53,46 @@ class UsersScreen(QWidget):
         self.role_combo.addItems(["cashier", "admin"])
         fields.addRow("ڕۆڵ:", self.role_combo)
 
-        form_layout.addLayout(fields)
+        form_card.body.addLayout(fields)
 
         self.error_label = QLabel("")
         self.error_label.setProperty("role", "error")
         self.error_label.setWordWrap(True)
-        form_layout.addWidget(self.error_label)
+        form_card.body.addWidget(self.error_label)
 
         self.add_btn = QPushButton(" زیادکردن")
         self.add_btn.setIcon(icon("fa5s.user-plus", "white"))
+        self.add_btn.setCursor(Qt.PointingHandCursor)
         self.add_btn.clicked.connect(self.on_add_clicked)
-        form_layout.addWidget(self.add_btn)
+        form_card.body.addWidget(self.add_btn)
 
-        form_layout.addSpacing(24)
         section_label = QLabel("گۆڕینی وشەی نهێنی (بۆ بەکارهێنەری دیاریکراو)")
         section_label.setProperty("role", "section")
-        form_layout.addWidget(section_label)
+        form_card.body.addWidget(section_label)
         self.new_password_input = QLineEdit()
         self.new_password_input.setEchoMode(QLineEdit.Password)
         self.new_password_input.setPlaceholderText("وشەی نهێنی نوێ")
-        form_layout.addWidget(self.new_password_input)
+        form_card.body.addWidget(self.new_password_input)
         self.change_password_btn = QPushButton(" گۆڕینی وشەی نهێنی")
         self.change_password_btn.setIcon(icon("fa5s.key", Colors.TEXT_SECONDARY))
         self.change_password_btn.setProperty("secondary", True)
+        self.change_password_btn.setCursor(Qt.PointingHandCursor)
         self.change_password_btn.clicked.connect(self.on_change_password_clicked)
-        form_layout.addWidget(self.change_password_btn)
+        form_card.body.addWidget(self.change_password_btn)
 
-        form_layout.addStretch()
-        root.addWidget(form_box, 2)
+        root.addWidget(form_card, 2)
 
-        table_box = QGroupBox("بەکارهێنەرەکان")
-        apply_card_shadow(table_box)
-        table_layout = QVBoxLayout(table_box)
-        self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["ناو", "ڕۆڵ", "بژاردەکان"])
+        table_card = Card("بەکارهێنەرەکان")
+        self.data_table = DataTable(
+            ["ناو", "ڕۆڵ", "بژاردەکان"],
+            empty_icon="fa5s.users",
+            empty_text="هیچ بەکارهێنەرێک نییە",
+        )
+        self.table = self.data_table.table
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setAlternatingRowColors(True)
-        self.table.setMouseTracking(True)
-        self.table.verticalHeader().setDefaultSectionSize(40)
-        self.table.verticalHeader().setVisible(False)
         self.table.itemSelectionChanged.connect(self.on_selection_changed)
-        table_layout.addWidget(self.table)
-        root.addWidget(table_box, 3)
+        table_card.body.addWidget(self.data_table, 1)
+        root.addWidget(table_card, 3)
 
         self.selected_user_id: int | None = None
 
@@ -131,7 +124,7 @@ class UsersScreen(QWidget):
             self.username_input.clear()
             self.password_input.clear()
             self.refresh_table()
-            QMessageBox.information(self, "سەرکەوتوو", "بەکارهێنەر زیادکرا")
+            show_toast(self.window(), "بەکارهێنەر زیادکرا", "success")
 
     def remove_user(self, user_id: int) -> bool:
         if user_id == self.current_user.id:
@@ -140,9 +133,12 @@ class UsersScreen(QWidget):
         auth.delete_user(self.conn, user_id)
         return True
 
-    def on_remove_clicked(self, user_id: int):
+    def on_remove_clicked(self, user_id: int, username: str):
+        if not confirm(self, f"دڵنیایت لەوەی بەکارهێنەری «{username}» بسڕیتەوە؟"):
+            return
         if self.remove_user(user_id):
             self.refresh_table()
+            show_toast(self.window(), "بەکارهێنەر سڕایەوە", "success")
 
     def change_password(self, user_id: int, new_password: str) -> bool:
         self.error_label.setText("")
@@ -158,7 +154,7 @@ class UsersScreen(QWidget):
             return
         if self.change_password(self.selected_user_id, self.new_password_input.text()):
             self.new_password_input.clear()
-            QMessageBox.information(self, "سەرکەوتوو", "وشەی نهێنی گۆڕدرا")
+            show_toast(self.window(), "وشەی نهێنی گۆڕدرا", "success")
 
     # ------------------------------------------------------------- refresh
     def refresh_table(self):
@@ -168,10 +164,20 @@ class UsersScreen(QWidget):
             name_item = QTableWidgetItem(u["username"])
             name_item.setData(Qt.UserRole, u["id"])
             self.table.setItem(row, 0, name_item)
-            self.table.setItem(row, 1, QTableWidgetItem(u["role"]))
+
+            role_badge = Badge("بەڕێوەبەر" if u["role"] == "admin" else "فرۆشیار", u["role"])
+            self.table.setCellWidget(row, 1, role_badge)
 
             remove_btn = QPushButton(" سڕینەوە")
             remove_btn.setIcon(icon("fa5s.trash-alt", "white"))
             remove_btn.setProperty("danger", True)
-            remove_btn.clicked.connect(lambda _, uid=u["id"]: self.on_remove_clicked(uid))
+            is_self = u["id"] == self.current_user.id
+            if is_self:
+                remove_btn.setEnabled(False)
+                remove_btn.setToolTip("ناتوانیت خۆت بسڕیتەوە")
+            else:
+                remove_btn.setCursor(Qt.PointingHandCursor)
+                remove_btn.clicked.connect(
+                    lambda _, uid=u["id"], name=u["username"]: self.on_remove_clicked(uid, name)
+                )
             self.table.setCellWidget(row, 2, remove_btn)
